@@ -1,6 +1,6 @@
 'use client';
 import clsx from 'clsx';
-import TopBar from '@/shared/components/Menu/TopBar';
+import TrainingActionBar from '@/shared/components/Menu/TrainingActionBar';
 import { useEffect } from 'react';
 import Sidebar from '@/shared/components/Menu/Sidebar';
 import Info from '@/shared/components/Menu/Info';
@@ -31,7 +31,7 @@ const DojoMenu = () => {
   }, []);
 
   return (
-    <div className="min-h-[100dvh] max-w-[100dvw] lg:pr-20 flex gap-4">
+    <div className='min-h-[100dvh] max-w-[100dvw] lg:pr-20 flex gap-4'>
       <Sidebar />
       <div
         className={clsx(
@@ -43,7 +43,7 @@ const DojoMenu = () => {
         <Banner />
 
         {pathWithoutLocale === '/kana' ? (
-          <div className="flex flex-col gap-3">
+          <div className='flex flex-col gap-3'>
             <Info />
             <ActionButton
               onClick={e => {
@@ -55,7 +55,7 @@ const DojoMenu = () => {
                   .map(({ i }) => i);
                 addKanaGroupIndices(indices);
               }}
-              className="px-2 py-3"
+              className='px-2 py-3'
             >
               <MousePointer />
               Select All Kana
@@ -64,19 +64,19 @@ const DojoMenu = () => {
             <SelectionStatusBar />
           </div>
         ) : pathWithoutLocale === '/kanji' ? (
-          <div className="flex flex-col gap-3">
+          <div className='flex flex-col gap-3'>
             <Info />
             <CollectionSelector />
             <KanjiCards />
           </div>
         ) : pathWithoutLocale === '/vocabulary' ? (
-          <div className="flex flex-col gap-3">
+          <div className='flex flex-col gap-3'>
             <Info />
             <CollectionSelector />
             <VocabCards />
           </div>
         ) : null}
-        <TopBar currentDojo={pathWithoutLocale.slice(1)} />
+        <TrainingActionBar currentDojo={pathWithoutLocale.slice(1)} />
       </div>
     </div>
   );

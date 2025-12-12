@@ -42,7 +42,7 @@ export default function BackToTop() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const topBar = document.getElementById('main-top-bar');
+    const topBar = document.getElementById('main-training-action-bar');
     const desktopBottomBar = document.getElementById('main-bottom-bar');
 
     const computeOffset = () => {

@@ -15,7 +15,9 @@ interface ITopBarProps {
   currentDojo: string;
 }
 
-const TopBar: React.FC<ITopBarProps> = ({ currentDojo }: ITopBarProps) => {
+const TrainingActionBar: React.FC<ITopBarProps> = ({
+  currentDojo
+}: ITopBarProps) => {
   const hotkeysOn = usePreferencesStore(state => state.hotkeysOn);
 
   const { playClick } = useClick();
@@ -181,7 +183,7 @@ const TopBar: React.FC<ITopBarProps> = ({ currentDojo }: ITopBarProps) => {
                   ? `${layout.width}px`
                   : layout.width
             }}
-            id='main-top-bar'
+            id='main-training-action-bar'
             className={clsx(
               'fixed z-40',
               'bg-[var(--background-color)]',
@@ -256,4 +258,4 @@ const TopBar: React.FC<ITopBarProps> = ({ currentDojo }: ITopBarProps) => {
   );
 };
 
-export default TopBar;
+export default TrainingActionBar;
