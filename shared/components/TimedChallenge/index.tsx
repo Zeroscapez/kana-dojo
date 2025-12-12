@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { useChallengeTimer } from '@/shared/hooks/useTimer';
 import { useGoalTimers } from '@/shared/hooks/useGoalTimers';
 import { useSmartReverseMode } from '@/shared/hooks/useSmartReverseMode';
 import { useClick, useCorrect, useError } from '@/shared/hooks/useAudio';
 import confetti from 'canvas-confetti';
+import { useRouter } from '@/core/i18n/routing';
 
 import EmptyState from './EmptyState';
 import PreGameScreen from './PreGameScreen';
@@ -21,6 +23,10 @@ interface TimedChallengeProps<T> {
 }
 
 export default function TimedChallenge<T>({ config }: TimedChallengeProps<T>) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const isBlitzRoute = pathname?.includes('/blitz') ?? false;
+
   const { playClick } = useClick();
   const { playCorrect } = useCorrect();
   const { playError } = useError();
@@ -101,6 +107,9 @@ export default function TimedChallenge<T>({ config }: TimedChallengeProps<T>) {
   const [showGoalTimers, setShowGoalTimers] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [isBlitzBooting, setIsBlitzBooting] = useState(() => isBlitzRoute);
+  const hasAutoStartedBlitz = useRef(false);
+
   // Pick mode state
   const [shuffledOptions, setShuffledOptions] = useState<string[]>([]);
   const [wrongSelectedAnswers, setWrongSelectedAnswers] = useState<string[]>(
@@ -134,6 +143,45 @@ export default function TimedChallenge<T>({ config }: TimedChallengeProps<T>) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items]);
+
+  // Blitz pages should not show the PreGameScreen at all; auto-start once when ready.
+  useEffect(() => {
+    if (!isBlitzRoute) {
+      setIsBlitzBooting(false);
+      return;
+    }
+    if (hasAutoStartedBlitz.current) return;
+    if (isRunning || isFinished) return;
+    if (items.length === 0) {
+      setIsBlitzBooting(false);
+      return;
+    }
+    if (!currentQuestion) return;
+
+    hasAutoStartedBlitz.current = true;
+
+    playClick();
+    stats.reset();
+    setIsFinished(false);
+    setUserAnswer('');
+    setLastAnswerCorrect(null);
+    setWrongSelectedAnswers([]);
+    goalTimers.resetGoals();
+    resetTimer();
+    startTimer();
+    setIsBlitzBooting(false);
+  }, [
+    currentQuestion,
+    isBlitzRoute,
+    isFinished,
+    isRunning,
+    items.length,
+    playClick,
+    goalTimers,
+    resetTimer,
+    startTimer,
+    stats
+  ]);
 
   const isReverseActive = supportsReverseMode && isReverse;
 
@@ -194,6 +242,10 @@ export default function TimedChallenge<T>({ config }: TimedChallengeProps<T>) {
 
   const handleCancel = () => {
     playClick();
+    if (isBlitzRoute) {
+      router.push(`/${dojoType}`);
+      return;
+    }
     resetTimer();
     setIsFinished(false);
     setUserAnswer('');
@@ -269,7 +321,11 @@ export default function TimedChallenge<T>({ config }: TimedChallengeProps<T>) {
     return <EmptyState dojoType={dojoType} dojoLabel={dojoLabel} />;
   }
 
-  if (!isRunning && !isFinished) {
+  if (isBlitzRoute && isBlitzBooting) {
+    return null;
+  }
+
+  if (!isBlitzRoute && !isRunning && !isFinished) {
     return (
       <PreGameScreen
         dojoType={dojoType}
