@@ -46,9 +46,6 @@ const kanjiSources = ['N5', 'N4', 'N3'] as const;
 
 const shuffle = <T,>(arr: T[]) => arr.slice().sort(() => Math.random() - 0.5);
 
-// Limit character count
-const MAX_KANJI_CHARS = 300;
-
 // Module-level cache for kanji characters - prevents refetching on every mount
 let kanjiCharsCache: string[] | null = null;
 let kanjiLoadingPromise: Promise<string[]> | null = null;
@@ -64,8 +61,7 @@ const loadKanjiChars = async (): Promise<string[]> => {
       return data.map(entry => entry.kanjiChar);
     })
   ).then(results => {
-    const allChars = results.flat();
-    kanjiCharsCache = shuffle(allChars).slice(0, MAX_KANJI_CHARS);
+    kanjiCharsCache = results.flat();
     kanjiLoadingPromise = null;
     return kanjiCharsCache;
   });
@@ -249,24 +245,8 @@ const Decorations = ({
     const loadKanji = async () => {
       // Use cached kanji chars to avoid refetching on every mount
       const chars = await loadKanjiChars();
-
       if (!isMounted) return;
-
-      const columns = 28;
-      const rows = 10;
-      const totalCells = columns * rows;
-
-      const fillGrid = (chars: string[], totalCells: number) => {
-        const filled: string[] = [];
-        while (filled.length < totalCells) {
-          filled.push(...shuffle(chars));
-        }
-        return filled.slice(0, totalCells);
-      };
-
-      const filledChars = fillGrid(chars, totalCells);
-
-      setKanjiList(filledChars);
+      setKanjiList(shuffle(chars));
     };
 
     void loadKanji();
