@@ -75,7 +75,6 @@ const secondaryNavSections: NavSection[] = [
     items: [
       { href: '/experiments', label: 'All Experiments', icon: Sparkles },
       { href: '/experiments/runner', label: 'Yokai Run', icon: Ghost },
-      { href: '/calligraphy', label: ' Calligraphy', charIcon: '書' },
       { href: '/zen', label: 'Zen Mode', icon: Leaf },
       { href: '/experiments/breathing', label: 'Breathing', icon: Wind },
       { href: '/experiments/ambient', label: 'Ambient', icon: Sparkles },
@@ -128,7 +127,7 @@ const NavLink = ({ item, isActive, onClick, variant }: NavLinkProps) => {
       return (
         <Icon
           className={clsx(
-            'shrink-0 ',
+            'shrink-0',
             item.animateWhenInactive &&
               !isActive &&
               'motion-safe:animate-bounce',

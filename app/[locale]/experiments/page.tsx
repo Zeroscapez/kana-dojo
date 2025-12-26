@@ -95,13 +95,6 @@ const experiments: Experiment[] = [
     href: '/experiments/runner',
     icon: Ghost,
     color: 'text-slate-200'
-  },
-  {
-    name: 'Calligraphy',
-    description: 'Practice drawing Japanese characters, stroke by stroke',
-    href: '/calligraphy',
-    charIcon: '書',
-    color: 'text-amber-400'
   }
 ];
 
