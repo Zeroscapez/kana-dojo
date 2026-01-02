@@ -13,6 +13,8 @@ export interface ArticleSchema {
   author: {
     '@type': 'Person';
     name: string;
+    image?: string;
+    url?: string;
   };
   publisher: {
     '@type': 'Organization';
@@ -24,6 +26,10 @@ export interface ArticleSchema {
   };
   mainEntityOfPage: string;
   image?: string;
+  wordCount?: number;
+  articleSection?: string;
+  articleBody?: string;
+  inLanguage?: string;
 }
 
 /**
@@ -64,6 +70,11 @@ export function generateArticleSchema(
   const publisherLogo = options.publisherLogo ?? PUBLISHER_LOGO;
   const mainEntityOfPage = `${baseUrl}/${post.locale}/academy/${post.slug}`;
 
+  // Calculate word count from content
+  const wordCount = post.content
+    ? post.content.split(/\s+/).filter(word => word.length > 0).length
+    : undefined;
+
   const schema: ArticleSchema = {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -72,7 +83,9 @@ export function generateArticleSchema(
     datePublished: post.publishedAt,
     author: {
       '@type': 'Person',
-      name: post.author
+      name: post.author,
+      url: `${baseUrl}/academy?author=${encodeURIComponent(post.author)}`,
+      image: `${baseUrl}/api/og?title=${encodeURIComponent(post.author)}&type=academy`
     },
     publisher: {
       '@type': 'Organization',
@@ -82,7 +95,8 @@ export function generateArticleSchema(
         url: publisherLogo
       }
     },
-    mainEntityOfPage
+    mainEntityOfPage,
+    inLanguage: post.locale || 'en'
   };
 
   // Add dateModified if present
@@ -95,6 +109,21 @@ export function generateArticleSchema(
     schema.image = post.featuredImage.startsWith('http')
       ? post.featuredImage
       : `${baseUrl}${post.featuredImage}`;
+  }
+
+  // Add word count if available
+  if (wordCount && wordCount > 0) {
+    schema.wordCount = wordCount;
+  }
+
+  // Add article section based on tags or category
+  if (post.tags && post.tags.length > 0) {
+    schema.articleSection = post.tags[0];
+  }
+
+  // Add article body preview (first 500 characters)
+  if (post.content) {
+    schema.articleBody = post.content.slice(0, 500);
   }
 
   return schema;

@@ -20,6 +20,18 @@ export async function generatePageMetadata(
     const description = t(`${key}.description`);
     const keywords = t(`${key}.keywords`);
 
+    // Determine OG image type based on key
+    const getImageType = (key: string): string => {
+        if (key.includes('kana')) return 'kana';
+        if (key.includes('kanji')) return 'kanji';
+        if (key.includes('vocabulary')) return 'vocabulary';
+        if (key.includes('academy')) return 'academy';
+        return 'default';
+    };
+
+    const imageType = getImageType(key);
+    const ogImageUrl = `https://kanadojo.com/api/og?title=${encodeURIComponent(titleShort)}&description=${encodeURIComponent(description.slice(0, 100))}&type=${imageType}`;
+
     return {
         title,
         description,
@@ -28,12 +40,21 @@ export async function generatePageMetadata(
             title: titleShort,
             description,
             url: `https://kanadojo.com`,
-            type: 'website'
+            type: 'website',
+            images: [
+                {
+                    url: ogImageUrl,
+                    width: 1200,
+                    height: 630,
+                    alt: titleShort
+                }
+            ]
         },
         twitter: {
             card: 'summary_large_image',
             title: titleShort,
-            description
+            description,
+            images: [ogImageUrl]
         },
         alternates: {
             canonical: `https://kanadojo.com`
