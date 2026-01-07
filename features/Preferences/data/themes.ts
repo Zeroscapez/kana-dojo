@@ -836,9 +836,9 @@ const baseThemeSets: BaseThemeGroup[] = [
       },
       {
         id: 'morion',
-        backgroundColor: 'oklch(20.0% 0.054 255.0 / 1)',    // ink blue
-        mainColor: 'oklch(92.5% 0.190 130.0 / 1)',           // glacial lime
-        secondaryColor: 'oklch(84.0% 0.140 85.0 / 1)',       // smoky saffron
+        backgroundColor: 'oklch(20.0% 0.054 255.0 / 1)',    
+        mainColor: 'oklch(92.5% 0.190 130.0 / 1)',           
+        secondaryColor: 'oklch(84.0% 0.140 85.0 / 1)',       
       }
     ]
   },
