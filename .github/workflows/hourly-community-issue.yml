@@ -1,0 +1,171 @@
+name: Create Community Contribution Issue
+
+on:
+  schedule:
+    - cron: '0 * * * *' # Every hour
+  workflow_dispatch: # Manual trigger for testing
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  create-issue:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Create community issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+
+            // Read state file
+            const statePath = 'data/community/automation-state.json';
+            const themeBacklogPath = 'data/community/theme-backlog.json';
+            const factsBacklogPath = 'data/community/facts-backlog.json';
+
+            let state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+            const themes = JSON.parse(fs.readFileSync(themeBacklogPath, 'utf8'));
+            const facts = JSON.parse(fs.readFileSync(factsBacklogPath, 'utf8'));
+
+            // Determine next type (round-robin)
+            const nextType = state.lastType === 'theme' ? 'fact' : 'theme';
+
+            let item, issueTitle, issueBody;
+
+            if (nextType === 'theme') {
+              // Find next un-issued theme
+              item = themes.find(function(t) { return !t.issued; });
+              
+              if (!item) {
+                console.log('No more themes available in backlog.');
+                return;
+              }
+              
+              issueTitle = '🎨 Add Theme: ' + item.name;
+              issueBody = '## 🎨 Add New Theme: "' + item.name + '"\n\n' +
+                '**Category:** Community Contribution - Theme\n' +
+                '**Difficulty:** Easy\n' +
+                '**Estimated Time:** 15-20 minutes\n\n' +
+                '---\n\n' +
+                '### 🎯 Your Task\n\n' +
+                'Add this beautiful new theme to KanaDojo!\n\n' +
+                '### Theme Details\n\n' +
+                '| Property | Value |\n' +
+                '|----------|-------|\n' +
+                '| **ID** | `' + item.id + '` |\n' +
+                '| **Background** | `' + item.backgroundColor + '` |\n' +
+                '| **Main Color** | `' + item.mainColor + '` |\n' +
+                '| **Secondary** | `' + item.secondaryColor + '` |\n\n' +
+                '> 💡 **Vibe:** ' + item.description + '\n\n' +
+                '### 📝 Instructions\n\n' +
+                '1. Open [`features/Preferences/data/themes.ts`](../blob/main/features/Preferences/data/themes.ts)\n' +
+                '2. Find the `Dark` themes section (around line 243)\n' +
+                '3. Add this new theme to the array:\n\n' +
+                '```typescript\n' +
+                '{\n' +
+                "  id: '" + item.id + "',\n" +
+                "  backgroundColor: '" + item.backgroundColor + "',\n" +
+                "  mainColor: '" + item.mainColor + "',\n" +
+                "  secondaryColor: '" + item.secondaryColor + "'\n" +
+                '},\n' +
+                '```\n\n' +
+                '4. Run the app locally (`npm run dev`) and verify the theme looks good\n' +
+                '5. Submit a Pull Request with title: `feat(theme): add ' + item.name + ' theme`\n' +
+                '6. Link this issue using `Closes #<issue_number>`\n\n' +
+                '---\n\n' +
+                '**Questions?** Comment below and we\'ll help! 🙌';
+              
+              // Mark as issued
+              const themeIndex = themes.findIndex(function(t) { return t.id === item.id; });
+              themes[themeIndex].issued = true;
+              fs.writeFileSync(themeBacklogPath, JSON.stringify(themes, null, 2));
+              
+            } else {
+              // Find next un-issued fact
+              item = facts.find(function(f) { return !f.issued; });
+              
+              if (!item) {
+                console.log('No more facts available in backlog.');
+                return;
+              }
+              
+              issueTitle = '🎋 Add Japan Fact #' + item.id;
+              issueBody = '## 🎋 Add New Japan Fact\n\n' +
+                '**Category:** Community Contribution - Fun Fact\n' +
+                '**Difficulty:** Easy\n' +
+                '**Estimated Time:** 5-10 minutes\n\n' +
+                '---\n\n' +
+                '### 🎯 Your Task\n\n' +
+                'Add this interesting fact about Japan to our collection!\n\n' +
+                '### The Fact\n\n' +
+                '> ' + item.fact + '\n\n' +
+                '### 📝 Instructions\n\n' +
+                '1. Open [`public/japan-facts.json`](../blob/main/public/japan-facts.json)\n' +
+                '2. Add this fact to the end of the array (before the closing `]`)\n' +
+                '3. Make sure to:\n' +
+                '   - Add a comma after the previous last item\n' +
+                '   - Properly escape any special characters in the text\n' +
+                '   - Keep the formatting consistent\n\n' +
+                '4. Submit a Pull Request with title: `content: add japan fact #' + item.id + '`\n' +
+                '5. Link this issue using `Closes #<issue_number>`\n\n' +
+                '---\n\n' +
+                '**Questions?** Comment below and we\'ll help! 🙌';
+              
+              // Mark as issued
+              const factIndex = facts.findIndex(function(f) { return f.id === item.id; });
+              facts[factIndex].issued = true;
+              fs.writeFileSync(factsBacklogPath, JSON.stringify(facts, null, 2));
+            }
+
+            // Create the issue
+            const labels = [
+              'good first issue',
+              'community',
+              'open-source',
+              'hacktoberfest',
+              'javascript',
+              'help wanted',
+              'enhancement'
+            ];
+
+            const response = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: issueTitle,
+              body: issueBody,
+              labels: labels
+            });
+
+            console.log('Created issue #' + response.data.number + ': ' + issueTitle);
+
+            // Update state
+            state.lastType = nextType;
+            state.lastRun = new Date().toISOString();
+            state.totalIssuesCreated = (state.totalIssuesCreated || 0) + 1;
+            fs.writeFileSync(statePath, JSON.stringify(state, null, 2));
+
+            // Set outputs for commit
+            core.setOutput('issue_number', response.data.number);
+            core.setOutput('issue_type', nextType);
+            core.setOutput('item_id', item.id);
+
+      - name: Commit backlog updates
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/community/
+          git diff --staged --quiet || git commit -m "chore(automation): mark item as issued"
+          git push

@@ -1,0 +1,58 @@
+name: Welcome PR Authors
+
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Post welcome comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr = context.payload.pull_request;
+            const author = pr.user.login;
+
+            // Check if this is the author's first contribution
+            let isFirstTime = false;
+            try {
+              const { data: contributions } = await github.rest.repos.listContributors({
+                owner: context.repo.owner,
+                repo: context.repo.repo
+              });
+              isFirstTime = !contributions.some(function(c) { return c.login === author; });
+            } catch (e) {
+              // If the API call fails, assume it's not their first time
+              console.log('Could not fetch contributors list');
+            }
+
+            let welcomeMessage = '## 🎉 Thanks for your Pull Request, @' + author + '!\n\n' +
+              'We appreciate your contribution to KanaDojo!\n\n' +
+              '**Pre-merge checklist:**\n' +
+              '- [ ] Code follows project style guidelines\n' +
+              '- [ ] Changes have been tested locally\n' +
+              '- [ ] PR title is descriptive\n' +
+              '- [ ] If this closes an issue, it\'s linked with `Closes #<number>`\n\n' +
+              'A maintainer will review your PR soon. In the meantime, make sure all CI checks pass!\n\n' +
+              'ありがとうございます! 🙏';
+
+            if (isFirstTime) {
+              welcomeMessage += '\n\n---\n\n' +
+                '🌟 **Welcome to KanaDojo!** This appears to be your first contribution—that\'s awesome! We\'re thrilled to have you here. If you have any questions, don\'t hesitate to ask.';
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: welcomeMessage
+            });
+
+            console.log('Welcomed PR author @' + author + ' on PR #' + pr.number);

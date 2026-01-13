@@ -1,0 +1,149 @@
+name: Manage Stale Community Issues
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Daily at midnight UTC
+  workflow_dispatch: # Manual trigger for testing
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  manage-stale:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Process stale community issues
+        id: stale-check
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+
+            const themeBacklogPath = 'data/community/theme-backlog.json';
+            const factsBacklogPath = 'data/community/facts-backlog.json';
+
+            // Get all open issues with community label
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'community',
+              state: 'open',
+              per_page: 100
+            });
+
+            const now = new Date();
+            const FIVE_DAYS = 5 * 24 * 60 * 60 * 1000;
+            const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+
+            let needsCommit = false;
+            let themes = JSON.parse(fs.readFileSync(themeBacklogPath, 'utf8'));
+            let facts = JSON.parse(fs.readFileSync(factsBacklogPath, 'utf8'));
+
+            for (const issue of issues) {
+              // Skip if no assignees (not claimed yet)
+              if (!issue.assignees || issue.assignees.length === 0) {
+                continue;
+              }
+              
+              const lastActivity = new Date(issue.updated_at);
+              const timeSinceActivity = now - lastActivity;
+              
+              // Check for stale-warning label
+              const hasWarning = issue.labels.some(function(l) { return l.name === 'stale-warning'; });
+              
+              if (timeSinceActivity >= SEVEN_DAYS) {
+                // Close the issue
+                console.log('Closing stale issue #' + issue.number + ': ' + issue.title);
+                
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body: '🕐 **This issue has been automatically closed** due to 7 days of inactivity.\n\n' +
+                    'Don\'t worry—the contribution opportunity will be re-posted for someone else to claim.\n\n' +
+                    'Thanks for your interest in contributing to KanaDojo! 🙏'
+                });
+                
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  state: 'closed',
+                  state_reason: 'not_planned'
+                });
+                
+                // Re-enable the item in backlog
+                const title = issue.title;
+                
+                if (title.includes('Add Theme:')) {
+                  // Extract theme name and find in backlog
+                  const themeName = title.replace('🎨 Add Theme: ', '').trim();
+                  const themeIndex = themes.findIndex(function(t) { return t.name === themeName; });
+                  if (themeIndex !== -1) {
+                    themes[themeIndex].issued = false;
+                    needsCommit = true;
+                    console.log('Re-enabled theme: ' + themeName);
+                  }
+                } else if (title.includes('Add Japan Fact #')) {
+                  // Extract fact ID
+                  const factIdMatch = title.match(/#(\d+)/);
+                  if (factIdMatch) {
+                    const factId = parseInt(factIdMatch[1]);
+                    const factIndex = facts.findIndex(function(f) { return f.id === factId; });
+                    if (factIndex !== -1) {
+                      facts[factIndex].issued = false;
+                      needsCommit = true;
+                      console.log('Re-enabled fact #' + factId);
+                    }
+                  }
+                }
+                
+              } else if (timeSinceActivity >= FIVE_DAYS && !hasWarning) {
+                // Add warning
+                console.log('Adding warning to issue #' + issue.number);
+                
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body: '👋 **Heads up!** This issue has been inactive for 5 days.\n\n' +
+                    'If you\'re still working on it, please comment to let us know!\n\n' +
+                    'Otherwise, it will be automatically closed in **2 days** and made available for others to claim.\n\n' +
+                    'Need help? Just ask! 🙌'
+                });
+                
+                // Add stale-warning label
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  labels: ['stale-warning']
+                });
+              }
+            }
+
+            // Save backlogs if modified
+            if (needsCommit) {
+              fs.writeFileSync(themeBacklogPath, JSON.stringify(themes, null, 2));
+              fs.writeFileSync(factsBacklogPath, JSON.stringify(facts, null, 2));
+              core.setOutput('needs_commit', 'true');
+            } else {
+              core.setOutput('needs_commit', 'false');
+            }
+
+      - name: Commit backlog updates
+        if: steps.stale-check.outputs.needs_commit == 'true'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/community/
+          git diff --staged --quiet || git commit -m "chore(automation): re-enable stale items in backlog"
+          git push
