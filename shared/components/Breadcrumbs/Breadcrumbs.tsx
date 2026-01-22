@@ -43,7 +43,7 @@ export function Breadcrumbs({
         aria-label='Breadcrumb'
         className={cn('mb-4 flex items-center space-x-2 text-sm', className)}
       >
-        <ol className='flex items-center space-x-2'>
+        <ol className='flex items-center space-x-2' role='list'>
           {items.map((item, index) => {
             const isLast = index === items.length - 1;
 
@@ -51,14 +51,14 @@ export function Breadcrumbs({
               <li key={item.url} className='flex items-center space-x-2'>
                 {index > 0 && (
                   <ChevronRight
-                    className='h-4 w-4 text-muted-foreground'
+                    className='text-muted-foreground h-4 w-4'
                     aria-hidden='true'
                   />
                 )}
 
                 {isLast ? (
                   <span
-                    className='font-medium text-foreground'
+                    className='text-foreground font-medium'
                     aria-current='page'
                   >
                     {item.name}
@@ -66,7 +66,7 @@ export function Breadcrumbs({
                 ) : (
                   <Link
                     href={item.url}
-                    className='text-muted-foreground transition-colors hover:text-foreground'
+                    className='text-muted-foreground hover:text-foreground focus-visible:ring-primary rounded-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none'
                   >
                     {item.name}
                   </Link>

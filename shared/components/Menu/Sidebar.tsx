@@ -8,6 +8,7 @@ import {
   Languages,
   ChevronDown,
   ChevronRight,
+  Library,
   type LucideIcon,
 } from 'lucide-react';
 import clsx from 'clsx';
@@ -63,7 +64,10 @@ const mainNavItems: NavItem[] = [
 const staticSecondaryNavSections: NavSection[] = [
   {
     title: 'Academy',
-    items: [{ href: '/academy', label: 'Guides', icon: BookOpen }],
+    items: [
+      { href: '/academy', label: 'Guides', icon: BookOpen },
+      { href: '/resources', label: 'Resources', icon: Library },
+    ],
   },
   {
     title: 'Tools',

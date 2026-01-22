@@ -9,13 +9,15 @@ const sitemapConfig = {
   additionalPaths: async config => {
     const siteUrl = config.siteUrl || 'https://kanadojo.com';
 
-    const buildEntry = basePath => {
+    const buildEntry = (basePath, customPriority, customChangefreq) => {
       const normalizedBasePath = basePath === '/' ? '' : basePath;
+      const priority = customPriority ?? config.priority;
+      const changefreq = customChangefreq ?? config.changefreq;
 
       return {
         loc: `/en${normalizedBasePath}` || '/en',
-        changefreq: config.changefreq,
-        priority: config.priority,
+        changefreq,
+        priority,
         lastmod: config.autoLastmod ? new Date().toISOString() : undefined,
         alternateRefs: [
           {
@@ -59,7 +61,296 @@ const sitemapConfig = {
       '/jlpt/n3',
     ];
 
-    return basePaths.map(buildEntry);
+    // Resource library paths with appropriate priorities
+    // Main resources page: 0.8 priority
+    // Category pages: 0.7 priority
+    // Subcategory pages: 0.6 priority
+    const resourcePaths = [
+      // Main resources page
+      { path: '/resources', priority: 0.8, changefreq: 'weekly' },
+      // Category pages
+      { path: '/resources/apps', priority: 0.7, changefreq: 'weekly' },
+      { path: '/resources/websites', priority: 0.7, changefreq: 'weekly' },
+      { path: '/resources/textbooks', priority: 0.7, changefreq: 'weekly' },
+      { path: '/resources/youtube', priority: 0.7, changefreq: 'weekly' },
+      { path: '/resources/podcasts', priority: 0.7, changefreq: 'weekly' },
+      { path: '/resources/games', priority: 0.7, changefreq: 'weekly' },
+      { path: '/resources/jlpt', priority: 0.7, changefreq: 'weekly' },
+      { path: '/resources/reading', priority: 0.7, changefreq: 'weekly' },
+      { path: '/resources/listening', priority: 0.7, changefreq: 'weekly' },
+      { path: '/resources/speaking', priority: 0.7, changefreq: 'weekly' },
+      { path: '/resources/writing', priority: 0.7, changefreq: 'weekly' },
+      { path: '/resources/grammar', priority: 0.7, changefreq: 'weekly' },
+      { path: '/resources/vocabulary', priority: 0.7, changefreq: 'weekly' },
+      { path: '/resources/kanji', priority: 0.7, changefreq: 'weekly' },
+      { path: '/resources/immersion', priority: 0.7, changefreq: 'weekly' },
+      { path: '/resources/community', priority: 0.7, changefreq: 'weekly' },
+      // Apps subcategories
+      {
+        path: '/resources/apps/flashcards',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/apps/dictionaries',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/apps/comprehensive',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/apps/input-methods',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      // Websites subcategories
+      {
+        path: '/resources/websites/courses',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/websites/reference',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/websites/practice',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      // Textbooks subcategories
+      {
+        path: '/resources/textbooks/beginner',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/textbooks/intermediate',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/textbooks/advanced',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/textbooks/specialized',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      // YouTube subcategories
+      {
+        path: '/resources/youtube/lessons',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/youtube/culture',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/youtube/entertainment',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      // Podcasts subcategories
+      {
+        path: '/resources/podcasts/beginner-podcasts',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/podcasts/intermediate-podcasts',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/podcasts/native-content',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      // Games subcategories
+      { path: '/resources/games/rpg', priority: 0.6, changefreq: 'weekly' },
+      {
+        path: '/resources/games/visual-novels',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/games/educational-games',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/games/casual-games',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      // JLPT subcategories
+      { path: '/resources/jlpt/n5', priority: 0.6, changefreq: 'weekly' },
+      { path: '/resources/jlpt/n4', priority: 0.6, changefreq: 'weekly' },
+      { path: '/resources/jlpt/n3', priority: 0.6, changefreq: 'weekly' },
+      { path: '/resources/jlpt/n2', priority: 0.6, changefreq: 'weekly' },
+      { path: '/resources/jlpt/n1', priority: 0.6, changefreq: 'weekly' },
+      // Reading subcategories
+      {
+        path: '/resources/reading/graded-readers',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      { path: '/resources/reading/news', priority: 0.6, changefreq: 'weekly' },
+      { path: '/resources/reading/manga', priority: 0.6, changefreq: 'weekly' },
+      {
+        path: '/resources/reading/novels',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      // Listening subcategories
+      {
+        path: '/resources/listening/audio-lessons',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/listening/shadowing',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/listening/comprehension',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      // Speaking subcategories
+      {
+        path: '/resources/speaking/pronunciation',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/speaking/conversation',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/speaking/tutoring',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      // Writing subcategories
+      {
+        path: '/resources/writing/handwriting',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/writing/composition',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/writing/correction',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      // Grammar subcategories
+      {
+        path: '/resources/grammar/guides',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/grammar/practice-grammar',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/grammar/sentence-patterns',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      // Vocabulary subcategories
+      {
+        path: '/resources/vocabulary/frequency-lists',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/vocabulary/themed-vocab',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/vocabulary/word-lists',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      // Kanji subcategories
+      {
+        path: '/resources/kanji/learning-systems',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/kanji/kanji-practice',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/kanji/kanji-reference',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      // Immersion subcategories
+      {
+        path: '/resources/immersion/media-tools',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/immersion/streaming',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/immersion/sentence-mining',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      // Community subcategories
+      {
+        path: '/resources/community/forums',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/community/discord',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+      {
+        path: '/resources/community/language-exchange',
+        priority: 0.6,
+        changefreq: 'weekly',
+      },
+    ];
+
+    // Build entries for base paths (default priority)
+    const baseEntries = basePaths.map(path => buildEntry(path));
+
+    // Build entries for resource paths (custom priorities)
+    const resourceEntries = resourcePaths.map(
+      ({ path, priority, changefreq }) =>
+        buildEntry(path, priority, changefreq),
+    );
+
+    return [...baseEntries, ...resourceEntries];
   },
   exclude: [
     '/api/*',

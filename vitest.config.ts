@@ -36,9 +36,9 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     include: ['**/*.test.ts', '**/*.test.tsx'],
-    projects:
-      storybookTest && playwright
-        ? [
+    ...(storybookTest && playwright
+      ? {
+          projects: [
             {
               extends: true,
               plugins: [
@@ -63,8 +63,9 @@ export default defineConfig({
                 setupFiles: ['.storybook/vitest.setup.ts'],
               },
             },
-          ]
-        : [],
+          ],
+        }
+      : {}),
   },
   resolve: {
     alias: {

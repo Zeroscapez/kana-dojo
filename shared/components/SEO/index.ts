@@ -40,3 +40,6 @@ export {
   kanjiFAQs,
 } from './FAQSchema';
 export type { FAQItem, FAQSchemaProps } from './FAQSchema';
+
+export { ItemListSchema, generateItemListSchema } from './ItemListSchema';
+export type { ItemListSchemaProps } from './ItemListSchema';
