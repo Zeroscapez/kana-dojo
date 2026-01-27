@@ -359,6 +359,12 @@ const baseThemeSets: BaseThemeGroup[] = [
         secondaryColor: 'oklch(65.0% 0.105 270.0 / 1)',
       },
       {
+        id: 'mountain-onsen',
+        backgroundColor: 'oklch(20.0% 0.018 210.0 / 1)',
+        mainColor: 'oklch(80.0% 0.085 200.0 / 1)',
+        secondaryColor: 'oklch(68.0% 0.105 160.0 / 1)'
+      },
+      {
         id: 'jpop-energy',
         backgroundColor: 'oklch(15.0% 0.055 310.0 / 1)',
         mainColor: 'oklch(80.0% 0.210 345.0 / 1)',
