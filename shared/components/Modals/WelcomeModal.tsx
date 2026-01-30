@@ -109,6 +109,10 @@ const WelcomeModal = () => {
     setHasSeenWelcome(true);
   };
 
+  useEffect(() => {
+    router.prefetch('/demo');
+  }, [router]);
+
   const handleNext = () => {
     playClick();
     if (step === 'welcome') {
@@ -185,7 +189,7 @@ const WelcomeModal = () => {
                 borderRadius='3xl'
                 borderBottomThickness={8}
                 onClick={() => {
-                  playClick();
+                  handleClose();
                   router.push('/demo');
                 }}
               >
