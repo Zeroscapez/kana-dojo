@@ -110,7 +110,10 @@ export default function PreGameScreen({
     [selectedSets],
   );
 
-  const gameModes = useMemo(() => GAME_MODES, []);
+  const gameModes = useMemo(
+    () => GAME_MODES.filter(m => m.id !== 'Type'),
+    [],
+  );
 
   const handleDifficultyClick = useCallback(
     (diff: GauntletDifficulty) => {

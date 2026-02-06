@@ -49,7 +49,6 @@ const calculateRegenThreshold = (totalQuestions: number): number => {
 function generateQuestionQueue<T>(
   items: T[],
   repetitions: number,
-  generateQuestion: (items: T[]) => T,
 ): GauntletQuestion<T>[] {
   const queue: GauntletQuestion<T>[] = [];
 
@@ -107,12 +106,8 @@ export default function Gauntlet<T>({ config, onCancel }: GauntletProps<T>) {
 
   // Game configuration state - initialized from store for all settings
   // The store persists settings across navigation from PreGameScreen to game route
-  const [gameMode, setGameModeState] = useState<GauntletGameMode>(() => {
-    // Use store value, fallback to config's initialGameMode, then default to 'Pick'
-    const storeMode = gauntletSettings.getGameMode(dojoType);
-    // If store has a value, use it; otherwise use initialGameMode from config
-    return storeMode || initialGameMode || 'Pick';
-  });
+  // Note: Type mode is not yet implemented in Gauntlet's ActiveGame, so we force Pick mode.
+  const [gameMode, setGameModeState] = useState<GauntletGameMode>('Pick');
   const [difficulty, setDifficultyState] = useState<GauntletDifficulty>(
     gauntletSettings.getDifficulty(dojoType),
   );
@@ -242,7 +237,7 @@ export default function Gauntlet<T>({ config, onCancel }: GauntletProps<T>) {
   const handleStart = useCallback(() => {
     playClick();
 
-    const queue = generateQuestionQueue(items, repetitions, generateQuestion);
+    const queue = generateQuestionQueue(items, repetitions);
     const diffConfig = DIFFICULTY_CONFIG[difficulty];
     const threshold = calculateRegenThreshold(queue.length);
 
@@ -290,7 +285,6 @@ export default function Gauntlet<T>({ config, onCancel }: GauntletProps<T>) {
     items,
     repetitions,
     difficulty,
-    generateQuestion,
     generateOptions,
     isReverseActive,
     playClick,
@@ -310,8 +304,22 @@ export default function Gauntlet<T>({ config, onCancel }: GauntletProps<T>) {
   }, []);
 
   // End game and calculate stats
+  // Accepts actual values as parameters to avoid stale closure issues,
+  // since React state setters are batched and don't update synchronously.
   const endGame = useCallback(
-    async (completed: boolean) => {
+    async ({
+      completed,
+      actualLives,
+      actualCorrectAnswers,
+      actualWrongAnswers,
+      actualQuestionsCompleted,
+    }: {
+      completed: boolean;
+      actualLives: number;
+      actualCorrectAnswers: number;
+      actualWrongAnswers: number;
+      actualQuestionsCompleted: number;
+    }) => {
       const totalTimeMs = Date.now() - startTime;
       const validAnswerTimes = answerTimes.filter(t => t > 0);
 
@@ -321,17 +329,18 @@ export default function Gauntlet<T>({ config, onCancel }: GauntletProps<T>) {
         difficulty,
         gameMode,
         totalQuestions,
-        correctAnswers,
-        wrongAnswers,
+        correctAnswers: actualCorrectAnswers,
+        wrongAnswers: actualWrongAnswers,
         accuracy:
-          correctAnswers + wrongAnswers > 0
-            ? correctAnswers / (correctAnswers + wrongAnswers)
+          actualCorrectAnswers + actualWrongAnswers > 0
+            ? actualCorrectAnswers /
+              (actualCorrectAnswers + actualWrongAnswers)
             : 0,
         bestStreak,
         currentStreak,
         startingLives: maxLives,
-        livesRemaining: lives,
-        livesLost: maxLives - lives + livesRegenerated,
+        livesRemaining: actualLives,
+        livesLost: maxLives - actualLives + livesRegenerated,
         livesRegenerated,
         totalTimeMs,
         averageTimePerQuestionMs:
@@ -344,7 +353,7 @@ export default function Gauntlet<T>({ config, onCancel }: GauntletProps<T>) {
         slowestAnswerMs:
           validAnswerTimes.length > 0 ? Math.max(...validAnswerTimes) : 0,
         completed,
-        questionsCompleted: currentIndex,
+        questionsCompleted: actualQuestionsCompleted,
         characterStats,
         totalCharacters: items.length,
         repetitionsPerChar: repetitions,
@@ -358,7 +367,7 @@ export default function Gauntlet<T>({ config, onCancel }: GauntletProps<T>) {
       setIsNewBest(newBest);
 
       // Track gauntlet stats for achievements
-      const livesLost = maxLives - lives + livesRegenerated;
+      const livesLost = maxLives - actualLives + livesRegenerated;
       const isPerfect = stats.accuracy === 1 && completed;
       statsTracking.recordGauntletRun({
         completed,
@@ -378,14 +387,10 @@ export default function Gauntlet<T>({ config, onCancel }: GauntletProps<T>) {
       difficulty,
       gameMode,
       totalQuestions,
-      correctAnswers,
-      wrongAnswers,
       bestStreak,
       currentStreak,
       maxLives,
-      lives,
       livesRegenerated,
-      currentIndex,
       characterStats,
       items.length,
       repetitions,
@@ -401,28 +406,54 @@ export default function Gauntlet<T>({ config, onCancel }: GauntletProps<T>) {
   }, []);
 
   const advanceToNextQuestion = useCallback(
-    (newLives: number, wasCorrect: boolean, newCorrectAnswers: number) => {
+    (
+      newLives: number,
+      wasCorrect: boolean,
+      newCorrectAnswers: number,
+      newWrongAnswers: number,
+      questionsCompleted: number,
+    ) => {
       setUserAnswer('');
       setWrongSelectedAnswers([]);
       setLastAnswerCorrect(null);
 
       if (newLives <= 0) {
-        endGame(false);
+        endGame({
+          completed: false,
+          actualLives: newLives,
+          actualCorrectAnswers: newCorrectAnswers,
+          actualWrongAnswers: newWrongAnswers,
+          actualQuestionsCompleted: questionsCompleted,
+        });
         return;
       }
 
       if (wasCorrect) {
         // Check if all questions have been answered correctly
         if (newCorrectAnswers >= totalQuestions) {
-          endGame(true);
+          endGame({
+            completed: true,
+            actualLives: newLives,
+            actualCorrectAnswers: newCorrectAnswers,
+            actualWrongAnswers: newWrongAnswers,
+            actualQuestionsCompleted: questionsCompleted,
+          });
           return;
         }
         // Move to the next question in the queue
         setCurrentIndex(prev => prev + 1);
       } else {
         // Wrong answer: re-queue this question at a random later position
-        // so the user must answer it correctly to complete the gauntlet
+        // so the user must answer it correctly to complete the gauntlet.
+        // Cap re-queuing to prevent unbounded queue growth — if the queue
+        // has already grown beyond 3x the original target, stop re-queuing
+        // (the player is struggling but still has lives due to regen).
+        const maxQueueSize = totalQuestions * 3;
         setQuestionQueue(prev => {
+          if (prev.length >= maxQueueSize) {
+            // Queue is very large — skip re-queuing to prevent runaway growth
+            return prev;
+          }
           const newQueue = [...prev];
           const failedQuestion = { ...newQueue[currentIndex] };
           // Insert at a random position between currentIndex+1 and end of queue
@@ -471,6 +502,7 @@ export default function Gauntlet<T>({ config, onCancel }: GauntletProps<T>) {
         }));
 
         const newCorrectAnswers = correctAnswers + 1;
+        const questionsCompleted = currentIndex + 1;
 
         const canRegen = DIFFICULTY_CONFIG[difficulty].regenerates;
         if (canRegen && lives < maxLives) {
@@ -486,7 +518,7 @@ export default function Gauntlet<T>({ config, onCancel }: GauntletProps<T>) {
           }
         }
 
-        advanceToNextQuestion(lives, true, newCorrectAnswers);
+        advanceToNextQuestion(lives, true, newCorrectAnswers, wrongAnswers, questionsCompleted);
         return;
       }
 
@@ -506,17 +538,20 @@ export default function Gauntlet<T>({ config, onCancel }: GauntletProps<T>) {
       }));
 
       const newLives = lives - 1;
+      const newWrongAnswers = wrongAnswers + 1;
+      const questionsCompletedOnWrong = currentIndex + 1;
       setLives(newLives);
       setLifeJustLost(true);
       setTimeout(() => setLifeJustLost(false), 500);
 
-      advanceToNextQuestion(newLives, false, correctAnswers);
+      advanceToNextQuestion(newLives, false, correctAnswers, newWrongAnswers, questionsCompletedOnWrong);
     },
     [
       advanceToNextQuestion,
       bestStreak,
       correctAnswers,
       correctSinceLastRegen,
+      currentIndex,
       currentQuestion,
       difficulty,
       getItemId,
@@ -526,6 +561,7 @@ export default function Gauntlet<T>({ config, onCancel }: GauntletProps<T>) {
       playError,
       recordAnswerTime,
       regenThreshold,
+      wrongAnswers,
     ],
   );
 

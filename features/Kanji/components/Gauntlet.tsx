@@ -36,18 +36,15 @@ const GauntletKanji: React.FC<GauntletKanjiProps> = ({ onCancel }) => {
     renderQuestion: (question, isReverse) =>
       isReverse ? question.meanings[0] : question.kanjiChar,
     checkAnswer: (question, answer, isReverse) => {
-      if (!isReverse) {
-        // Reverse: answer should be the kanji character or kunyomi or onyomi
+      if (isReverse) {
+        // Reverse: showing meaning, answer should be the kanji character or reading
         return (
           answer.trim() === question.kanjiChar ||
           question.kunyomi.some(k => k.split(' ')[0] === answer) ||
-          question.onyomi.some(k => k.split(' ')[0] === answer) ||
-          question.meanings.some(
-            meaning => answer.toLowerCase() === meaning.toLowerCase(),
-          )
+          question.onyomi.some(k => k.split(' ')[0] === answer)
         );
       }
-      // Normal: answer should match any meaning
+      // Normal: showing kanji, answer should match any meaning
       return question.meanings.some(
         meaning => answer.toLowerCase() === meaning.toLowerCase(),
       );

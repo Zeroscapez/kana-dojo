@@ -271,6 +271,11 @@ export default function ActiveGame<T>({
   const [bottomBarState, setBottomBarState] = useState<BottomBarState>('check');
   const [isChecking, setIsChecking] = useState(false);
   const [isCelebrating, setIsCelebrating] = useState(false);
+  // Capture the check result at check-time so users can't swap answers after seeing feedback
+  const [checkedResult, setCheckedResult] = useState<{
+    selectedOption: string;
+    isCorrect: boolean;
+  } | null>(null);
 
   // Reset state when question changes
   useEffect(() => {
@@ -278,6 +283,7 @@ export default function ActiveGame<T>({
     setBottomBarState('check');
     setIsChecking(false);
     setIsCelebrating(false);
+    setCheckedResult(null);
   }, [questionKey]);
 
   // Keyboard shortcut for Enter/Space to trigger button
@@ -313,6 +319,12 @@ export default function ActiveGame<T>({
     const isCorrect =
       placedTiles.length === 1 && placedTiles[0] === correctAnswer;
 
+    // Lock in the result at check time so it can't be changed by tile swapping
+    setCheckedResult({
+      selectedOption: placedTiles[0] || '',
+      isCorrect,
+    });
+
     if (isCorrect) {
       setBottomBarState('correct');
       setIsCelebrating(true);
@@ -325,27 +337,19 @@ export default function ActiveGame<T>({
   const handleContinue = useCallback(() => {
     playClick();
 
-    // Determine if was correct or wrong for parent callback
-    const wasCorrect =
-      placedTiles.length === 1 && placedTiles[0] === correctAnswer;
-
-    // Call parent with selected option and result
-    onSubmit(placedTiles[0] || '', wasCorrect);
-  }, [playClick, placedTiles, correctAnswer, onSubmit]);
+    // Use the locked-in result from check time (not recalculated from current tiles)
+    if (checkedResult) {
+      onSubmit(checkedResult.selectedOption, checkedResult.isCorrect);
+    }
+  }, [playClick, checkedResult, onSubmit]);
 
   // Handle tile click - add or remove from placed tiles
   const handleTileClick = useCallback(
     (char: string) => {
-      if (isChecking && bottomBarState !== 'wrong') return;
+      // Disable all tile interaction once the answer has been checked
+      if (isChecking) return;
 
       playClick();
-
-      // If already in a checked state, clicking a tile restarts checking
-      if (bottomBarState !== 'check') {
-        setIsChecking(false);
-        setBottomBarState('check');
-        setIsCelebrating(false);
-      }
 
       // Toggle tile in placed tiles array
       if (placedTiles.includes(char)) {
@@ -354,7 +358,7 @@ export default function ActiveGame<T>({
         setPlacedTiles(prev => [...prev, char]);
       }
     },
-    [isChecking, bottomBarState, placedTiles, playClick],
+    [isChecking, placedTiles, playClick],
   );
 
   // Not enough data to render
@@ -491,7 +495,7 @@ export default function ActiveGame<T>({
                         id={`tile-${char}`}
                         char={displayChar}
                         onClick={() => handleTileClick(char)}
-                        isDisabled={isChecking && bottomBarState !== 'wrong'}
+                        isDisabled={isChecking}
                         tileSizeClass={tileSizeClass}
                         variants={celebrationBounceVariants}
                         motionStyle={{ transformOrigin: '50% 100%' }}
@@ -535,7 +539,7 @@ export default function ActiveGame<T>({
                           id={`tile-${option}`}
                           char={displayChar}
                           onClick={() => handleTileClick(option)}
-                          isDisabled={isChecking && bottomBarState !== 'wrong'}
+                          isDisabled={isChecking}
                           tileSizeClass={tileSizeClass}
                         />
                       </div>
