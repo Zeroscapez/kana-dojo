@@ -441,8 +441,8 @@ export default function CustomWallpaperUpload() {
     await removeWallpaper(id);
     // If user was using this theme, fall back to a default
     if (selectedTheme === id) {
-      setSelectedTheme('dark');
-      applyTheme('dark');
+      setSelectedTheme('sapphire-bloom');
+      applyTheme('sapphire-bloom');
     }
   };
 
