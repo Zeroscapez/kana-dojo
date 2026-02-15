@@ -80,7 +80,7 @@
   {
     "id": 14,
     "fact": "There's a Japanese concept called 'kaizen' (æ”¹å–„) meaning continuous improvement, which became a cornerstone of global manufacturing practices.",
-    "issued": false,
+    "issued": true,
     "completed": false
   },
   {
